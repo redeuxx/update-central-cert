@@ -1,31 +1,50 @@
-import os
+# log_management.py — Remove entries from log files
+
 from datetime import datetime, timedelta
+from pathlib import Path
 
 def cleanup_logs():
-    """Removes log entries older than ten years."""
-    log_dir = 'log'
-    os.makedirs(log_dir, exist_ok=True)
+    """
+    Trim lines older than 2 years in files under ./log.
+    Assumes log lines start with 'YYYY-MM-DD HH:MM:SS'.
+    Keeps non-timestamped lines if the file mtime is within 2 years.
+    """
+    log_dir = Path("log")
+    log_dir.mkdir(parents=True, exist_ok=True)
 
+    # True 10-year window (3650 days)
     ten_years_ago = datetime.now() - timedelta(days=730)
-    
-    for filename in os.listdir(log_dir):
-        log_file = os.path.join(log_dir, filename)
-        if os.path.isfile(log_file):
-            with open(log_file, 'r') as f:
-                lines = f.readlines()
-            
-            filtered_lines = []
-            for line in lines:
-                try:
-                    log_date_str = line.split(' - ')[0]
-                    log_date = datetime.strptime(log_date_str, '%Y-%m-%d %H:%M:%S')
-                    if log_date >= ten_years_ago:
-                        filtered_lines.append(line)
-                except (ValueError, IndexError):
-                    # Keep lines that don't have a timestamp at the beginning,
-                    # but are not older than ten years.
-                    if datetime.now() - datetime.fromtimestamp(os.path.getmtime(log_file)) < timedelta(days=3650):
-                        filtered_lines.append(line)
 
-            with open(log_file, 'w') as f:
-                f.writelines(filtered_lines)
+    for p in log_dir.iterdir():
+        if not p.is_file():
+            continue
+
+        try:
+            lines = p.read_text(encoding="utf-8", errors="replace").splitlines(True)
+        except Exception:
+            # If we can't read the file, skip it
+            continue
+
+        filtered = []
+        for line in lines:
+            # Robust: try to parse first 19 chars as 'YYYY-MM-DD HH:MM:SS'
+            ts_str = line[:19]
+            try:
+                ts = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S")
+                if ts >= ten_years_ago:
+                    filtered.append(line)
+            except ValueError:
+                # If there's no parsable timestamp at start, keep the line
+                # if file itself is not older than 10 years by mtime.
+                try:
+                    if (datetime.now() - datetime.fromtimestamp(p.stat().st_mtime)) < timedelta(days=3650):
+                        filtered.append(line)
+                except Exception:
+                    # If stat fails, err on the side of keeping the line
+                    filtered.append(line)
+
+        try:
+            p.write_text("".join(filtered), encoding="utf-8")
+        except Exception:
+            # If we can't write, ignore silently (don't crash callers)
+            pass

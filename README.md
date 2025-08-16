@@ -10,22 +10,36 @@ This script uploads a certificate to Aruba Central.
    pip install -r requirements.txt
    ```
 3. Rename .env.example to .env and fill in the required fields.
-4. Run the script.
-   ```
-   python upload_cert.py
-   ```
+
 
 ## Configuration
 
-This project uses a `.env` file to manage environment variables. Create a file named `.env` in the root of the project and add the following variables:
+Create a file named `.env` in the root of the project and add the following variables:
 
 ```
-BASE_URL="YOUR_ARUBA_CENTRAL_API_BASE_URL"
-ACCESS_TOKEN="YOUR_ACCESS_TOKEN"
-CERTIFICATE_PATH="PATH_TO_YOUR_CERTIFICATE_FILE"
-CERTIFICATE_NAME="YOUR_CERTIFICATE_NAME"
-CERTIFICATE_PASSPHRASE="YOUR_CERTIFICATE_PASSPHRASE"
-CENTRAL_CID="YOUR_CENTRAL_CID"
+# --- Cluster base (use apigw, not app) ---
+BASE_URL=https://apigw-uswest4.central.arubanetworks.com
+
+# Auth (choose ONE path)
+# A) Fixed token (simpler, but it expires)
+ACCESS_TOKEN=eyJhbGciOixxxxxxxxxxx
+
+# B) OAuth auto-refresh. Uncomment lines below if you use this.
+# CLIENT_ID=xxxxxxxxxxxx
+# CLIENT_SECRET=yyyyyyyyyyyy
+# REFRESH_TOKEN=zzzzzzzzzzzz
+
+# Certificate
+# Windows: wrap in quotes or use forward slashes
+CERTIFICATE_PATH="C:/Users/you/certs/site.pfx"
+CERTIFICATE_NAME=site_cert
+CERTIFICATE_PASSPHRASE=123456
+
+# Behavior
+REPLACE=false            # true = replace by name via non_msp endpoint
+CENTRAL_CID=             # optional (MSP/fallback POST only)
+REQUEST_TIMEOUT=45
+LOG_LEVEL=INFO           # console level; log files are always DEBUG
 ```
 
 ## Usage
@@ -37,4 +51,4 @@ Run the script:
 
 ## Logging
 
-Error logs are written to `log/error.log`. Entries older than ten years are discarded.
+Error logs are written to `log/error.log`. Entries older than two years are discarded.
