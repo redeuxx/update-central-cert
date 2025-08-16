@@ -9,7 +9,7 @@ This script uploads a certificate to Aruba Central.
    ```
    pip install -r requirements.txt
    ```
-3. Rename .env.example to .env and fill in the required fields.
+3. Rename `.env.example` to `.env` and fill in the required fields.
 
 
 ## Configuration
